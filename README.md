@@ -104,23 +104,6 @@ RANKX(ALL(Dim_Producto[Nombre_Producto]), [Beneficio Real], , DESC, DENSE)
 
 ---
 
-## 03 Maritime Intelligence Dashboard
-
-**Stack:** Power BI · DAX · Star Schema · Datos AIS · Scoring OFAC/UN/EU  
-**Estado:** 🚧 En construcción — publicación prevista Q3 2026
-
-Dashboard de inteligencia marítima para monitorización de rutas críticas y detección de anomalías en cadena de suministro global.
-
-**Funcionalidades en desarrollo:**
-- Seguimiento de buques en 15 puertos de alto riesgo (Ormuz, Mar Negro, África Occidental)
-- Detección de dark activity (gaps en señal AIS)
-- Scoring de riesgo por ruta con sanciones OFAC/UN/EU
-- Early Warning Indicators con alertas DAX para rutas anómalas
-
-📁 [Ver avance del proyecto](./03_maritime_intelligence/)
-
----
-
 ## 04 SQL – Modelo Retail Leroy Merlin
 
 **Stack:** SQL Server · T-SQL · Star Schema · Window Functions · CTEs
