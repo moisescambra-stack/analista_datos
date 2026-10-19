@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════════════
--- MODELO RETAIL – LEROY MERLIN
+-- MODELO RETAIL DE GRAN SUPERFICIE (BRICOLAJE) – datos sintéticos
 -- Star Schema para análisis de rendimiento comercial en gran superficie
 -- Stack: SQL Server · T-SQL · Window Functions · CTEs
 -- ═══════════════════════════════════════════════════════════════════
@@ -161,7 +161,8 @@ WITH rfm_base AS (
         c.id_cliente,
         c.segmento,
         c.canal,
-        DATEDIFF(DAY, MAX(t.fecha), GETDATE())                  AS recency_dias,
+        -- Fecha de referencia = última fecha del dataset (resultado reproducible)
+        DATEDIFF(DAY, MAX(t.fecha), (SELECT MAX(fecha) FROM dim_tiempo)) AS recency_dias,
         COUNT(DISTINCT f.id_venta)                              AS frequency,
         ROUND(SUM(f.cantidad * f.precio_unitario * (1 - f.descuento_pct/100)), 2) AS monetary
     FROM fact_ventas f
@@ -171,9 +172,10 @@ WITH rfm_base AS (
 ),
 rfm_scores AS (
     SELECT *,
-        NTILE(5) OVER (ORDER BY recency_dias ASC)  AS score_r,  -- Menor = más reciente = mejor
-        NTILE(5) OVER (ORDER BY frequency DESC)    AS score_f,
-        NTILE(5) OVER (ORDER BY monetary DESC)     AS score_m
+        -- Score 5 = mejor cliente en cada dimensión
+        NTILE(5) OVER (ORDER BY recency_dias DESC) AS score_r,  -- más reciente -> 5
+        NTILE(5) OVER (ORDER BY frequency ASC)     AS score_f,  -- más frecuente -> 5
+        NTILE(5) OVER (ORDER BY monetary ASC)      AS score_m   -- más gasto -> 5
     FROM rfm_base
 )
 SELECT
@@ -187,12 +189,13 @@ SELECT
     score_f,
     score_m,
     (score_r + score_f + score_m)                               AS rfm_total,
+    -- Las reglas específicas van antes que las genéricas: en un CASE gana la primera verdadera
     CASE
+        WHEN score_r <= 2 AND (score_f + score_m) >= 8 THEN 'At Risk'
+        WHEN score_r >= 4 AND (score_f + score_m) <= 4 THEN 'New Customers'
         WHEN (score_r + score_f + score_m) >= 13 THEN 'Champions'
         WHEN (score_r + score_f + score_m) >= 10 THEN 'Loyal Customers'
         WHEN (score_r + score_f + score_m) >= 7  THEN 'Potential Loyalists'
-        WHEN score_r >= 4 AND (score_f + score_m) <= 4 THEN 'New Customers'
-        WHEN score_r <= 2 AND (score_f + score_m) >= 8 THEN 'At Risk'
         ELSE 'Need Attention'
     END                                                         AS segmento_rfm
 FROM rfm_scores

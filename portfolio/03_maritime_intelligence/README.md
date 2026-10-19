@@ -2,7 +2,7 @@
 
 **Power BI · DAX · Star Schema · AIS Data · Scoring de Riesgo · Early Warning Indicators**
 
-> 🚧 **En construcción — publicación prevista Q3 2026**
+> 🚧 **En desarrollo.** Diseño del modelo y medidas en borrador; el README se actualizará con capturas al completarse.
 
 ---
 
@@ -50,16 +50,17 @@ Dashboard de inteligencia marítima para monitorización de rutas críticas glob
 
 ```dax
 -- Scoring de riesgo por ruta (borrador)
+-- RELATED necesita contexto de fila: se itera la tabla de hechos con AVERAGEX
 Score Riesgo Ruta =
-VAR _sancion_ofac = RELATED(Dim_Sancion[Score_OFAC])
-VAR _sancion_un   = RELATED(Dim_Sancion[Score_UN])
-VAR _sancion_eu   = RELATED(Dim_Sancion[Score_EU])
-VAR _dark_activity = [% Gaps AIS]
+VAR _sanciones =
+    AVERAGEX (
+        Fact_Movimientos,
+        RELATED ( Dim_Sancion[Score_OFAC] ) * 0.40
+            + RELATED ( Dim_Sancion[Score_UN] ) * 0.30
+            + RELATED ( Dim_Sancion[Score_EU] ) * 0.20
+    )
 RETURN
-    (_sancion_ofac * 0.40)
-    + (_sancion_un * 0.30)
-    + (_sancion_eu * 0.20)
-    + (_dark_activity * 0.10)
+    _sanciones + [% Gaps AIS] * 0.10
 
 -- EWI Alerta ruta crítica
 EWI Ruta Critica =

@@ -1,183 +1,83 @@
-# 📊 Business Intelligence Portfolio — Moisés Cambra
+# 📊 Portfolio de análisis de datos — Moisés Cambra
 
-**Power BI · DAX · SQL · Microsoft Fabric · Star Schema**
+**Purchasing Data & Pricing Analyst · SQL · Power BI · DAX · Python**
 
-Repositorio de proyectos reales de Business Intelligence: modelado dimensional, DAX avanzado, cuadros de mando ejecutivos y bases de datos relacionales orientadas a negocio.
+Casos de análisis aplicados a problemas de negocio: control de precios, rendimiento de
+proveedores, niveles de servicio y rentabilidad comercial. Cada proyecto parte de una pregunta
+de negocio y termina en hallazgos y recomendaciones.
+
+> Todos los proyectos usan **datos sintéticos o datasets públicos de práctica**. Ninguno contiene
+> datos de empresas reales ni de mis empleadores.
 
 📧 moises.cambra@gmail.com · 📍 Madrid, España
 
 ---
 
+## ⭐ Proyecto destacado: control de precios en una central de compras
+
+**SQL · Funciones ventana · Early Warning Indicators · Python** · [Ver proyecto →](./portfolio/06_control_precios_compras/)
+
+Detección y priorización de errores en precios introducidos a mano, sobre 6.000 líneas de precio
+y ≈ 60,7 M€ de volumen de compra previsto.
+
+- **311 errores (5,2 %)** clasificados en 4 tipologías por su huella numérica, con un importe en riesgo de **≈ 7,1 M€**.
+- Los errores más frecuentes no son los más caros: el **30 %** de los errores concentra el **98,8 %** del riesgo.
+- **3 de 12 proveedores** generan el **56 %** de los errores.
+- Un indicador de alerta temprana habría señalado al proveedor en deterioro **7 meses antes** de que escalara.
+- Una regla de bloqueo automático en la entrada capturaría el **98,8 %** del riesgo **sin falsos positivos**.
+
+---
+
 ## 🗂️ Proyectos
 
-| # | Proyecto | Stack | Estado |
-|---|----------|-------|--------|
-| 01 | [Dashboard Ejecutivo – Scania Ibérica](#01-dashboard-ejecutivo--scania-ibérica) | Power BI · DAX · Constellation Schema | ✅ Completado |
-| 02 | [Auditoría Comercial – Conn's HomePlus](#02-auditoría-comercial--conns-homeplus) | Power BI · DAX · Star Schema | ✅ Completado |
-| 03 | [SQL – Modelo Retail Leroy Merlin](#04-sql--modelo-retail-leroy-merlin) | SQL Server · T-SQL · Star Schema | ✅ Completado |
-| 04 | [SQL – Base de Datos ERP Corporativo](#05-sql--base-de-datos-erp-corporativo) | SQL Server · T-SQL · Modelado relacional | ✅ Completado |
+| # | Proyecto | Pregunta de negocio | Stack |
+|---|----------|---------------------|-------|
+| 06 | [Control de precios en compras](./portfolio/06_control_precios_compras/) | ¿Dónde se equivocan los precios, cuánto cuesta y qué control lo evita? | SQL · Python |
+| 01 | [Dashboard ejecutivo – red de concesionarios](./portfolio/01_scania_dashboard/) | ¿Qué dealers, servicios y repuestos están fuera de objetivo? | Power BI · DAX · Constelación |
+| 07 | [Niveles de servicio OLA & ANS/SLA](./ola_sla_project/) | ¿Qué contratos están en riesgo de penalización? | Power BI · DAX · Estrella |
+| 02 | [Auditoría comercial – retail EE. UU.](./portfolio/02_conns_homeplus/) | ¿Por qué no se alcanza el objetivo de beneficio? | Power BI · DAX · Estrella |
+| 04 | [SQL – Modelo retail de bricolaje](./portfolio/04_sql_leroy_merlin/) | ¿Qué tiendas caen y qué clientes valen más? | SQL · Funciones ventana · RFM |
+| 05 | [SQL – Base de datos ERP](./portfolio/05_sql_erp_database/) | ¿Qué proveedores incumplen plazos y qué clientes no son rentables? | SQL · CTEs · Modelo relacional |
 
 ---
 
-## 01 Dashboard Ejecutivo – Scania Ibérica
+## 01 · Dashboard ejecutivo – red de concesionarios
 
-**Stack:** Power BI · DAX avanzado · Constellation Schema · SQL  
-**Modelo:** 3 tablas de hechos · 6 dimensiones · +16.000 registros
+**Power BI · DAX · Esquema en constelación (3 tablas de hechos, 6 dimensiones)**
 
-Cuadro de mando ejecutivo completo para la red de concesionarios Scania Ibérica. Analiza ventas de camiones, operaciones de servicio y cadena de suministro de repuestos en 54 dealers europeos.
+Red ficticia de 54 concesionarios de vehículos industriales: ventas, servicio técnico y repuestos,
+con indicadores de alerta temprana (First Time Fix Rate < 85 %, pedidos urgentes de repuestos).
 
-**Páginas del dashboard:**
-- **Executive Overview** — KPIs globales, semáforo de rendimiento, varianza YoY
-- **Truck Sales** — Análisis de ventas por modelo, región y trimestre
-- **Service Operations** — First Time Fix Rate, tiempos de intervención, eficiencia técnica
-- **Spare Parts** — Gestión de repuestos, pedidos urgentes, riesgo en SC por país
+![Executive Overview](./portfolio/01_scania_dashboard/capturas/executive_overview.jpg)
 
--- ─────────────────────────────────────────
--- Semáforo de rendimiento vs objetivo
--- ─────────────────────────────────────────
-Semaforo Ventas =
-VAR _actual   = [Total Ventas]
-VAR _target   = [Target Ventas]
-VAR _varianza = DIVIDE ( _actual - _target, _target )
-RETURN
-    SWITCH (
-        TRUE (),
-        ISBLANK ( _target ), BLANK (),          -- sin objetivo: no se evalúa
-        _varianza >= 0,      "🟢",
-        _varianza >= -0.05,  "🟡",
-        "🔴"
-    )
+## 07 · Niveles de servicio OLA & ANS/SLA
 
--- ─────────────────────────────────────────
--- Ventas acumuladas de los últimos 3 meses
--- ─────────────────────────────────────────
-Rolling 3M Ventas =
-VAR _ultimaFechaConDatos =
-    CALCULATE ( MAX ( Fact_Ventas_Camiones[Fecha] ), ALL ( Dim_Calendario ) )
-VAR _fechaRef =
-    MIN ( MAX ( Dim_Calendario[Fecha] ), _ultimaFechaConDatos )
-RETURN
-    CALCULATE (
-        [Total Ventas],
-        DATESINPERIOD ( Dim_Calendario[Fecha], _fechaRef, -3, MONTH )
-    )
+**Power BI · DAX · Estrella · Datos incluidos para reproducirlo**
 
--- ─────────────────────────────────────────
--- Ranking de dealers (respeta los filtros del usuario)
--- ─────────────────────────────────────────
-Ranking Dealer =
-IF (
-    ISINSCOPE ( Dim_Dealer[Nombre_Dealer] ) && NOT ISBLANK ( [Total Ventas] ),
-    RANKX ( ALLSELECTED ( Dim_Dealer[Nombre_Dealer] ), [Total Ventas], , DESC, DENSE )
-)
+Cumplimiento de SLA por contrato y de OLA por equipo interno, con objetivos dinámicos según la
+prioridad de la incidencia y alertas de brecha antes de la penalización.
 
-📁 [Ver capturas del dashboard](./01_scania_dashboard/capturas/)
+## 02 · Auditoría comercial – retail EE. UU.
+
+**Power BI · DAX · Estrella · 38.000 transacciones (dataset público)**
+
+Diagnóstico de un déficit del 8 % frente al objetivo de beneficio: la política de descuentos
+erosiona el margen sin aumentar el beneficio real.
+
+## 04 · SQL – Modelo retail de bricolaje · 05 · SQL – ERP
+
+Modelos relacionales con consultas de negocio: caída de ventas interanual con `LAG()`,
+segmentación RFM con `NTILE()`, lead time de proveedores frente a SLA, clasificación ABC de
+clientes y forecast ponderado del pipeline.
 
 ---
 
-## 02 Auditoría Comercial – Conn's HomePlus
+## 🛠️ Stack
 
-**Stack:** Power BI · DAX · Star Schema · Power Query  
-**Modelo:** Star Schema · +38.000 transacciones · 4 macro-regiones · 2014–2018
+| Área | Herramientas demostradas en este repositorio |
+|------|---------------------------------------------|
+| SQL | CTEs · Funciones ventana (`LAG`, `NTILE`, `SUM/AVG OVER`) · Vistas · Agregaciones condicionales |
+| Power BI | DAX · Time intelligence · Formato condicional · Esquemas en estrella y constelación |
+| Python | Generación de datos sintéticos · Automatización de consultas SQL (`sqlite3`) |
 
-Solución BI completa para auditoría de rendimiento comercial. Identificó un déficit del -8% respecto al objetivo de 2,5M€ y diagnosticó que la estrategia de descuentos masivos erosionaba el margen sin escalar el beneficio.
-
-**Módulos del dashboard:**
-- **Overview** — Ventas totales, beneficio real post-descuento, KPI mejor mes
-- **Producto** — Ranking de categorías, anomalías de crecimiento por SKU, concentración de margen
-- **Cliente** — Segmentación Consumer / Corporate / Home Office, comportamiento por segmento
-- **Geoespacial** — Mapa de rentabilidad por ciudad, ciudades ancla vs zonas de fricción
-
-**Hallazgos clave entregados al cliente:**
-- Segmento Consumer: motor principal absoluto de beneficio real
-- Región East: alto volumen, baja rentabilidad neta — requiere revisión de pricing
-- Ciudades ancla (Chicago, Columbus): margen alto y recurrencia predecible
-- SKUs con crecimiento interanual exponencial identificados para reposición prioritaria
-
-**Técnicas DAX aplicadas:**
-```dax
--- Beneficio real después de descuento
-Beneficio Real =
-SUMX(
-    Ventas,
-    Ventas[Cantidad] * Ventas[Precio_Unitario] * (1 - Ventas[Descuento])
-    - Ventas[Cantidad] * Ventas[Coste_Unitario]
-)
-
--- % Varianza vs Objetivo
-Varianza Objetivo % =
-DIVIDE([Beneficio Real] - [Objetivo Beneficio], [Objetivo Beneficio], 0)
-
--- Top N productos por margen
-Top10 Productos =
-RANKX(ALL(Dim_Producto[Nombre_Producto]), [Beneficio Real], , DESC, DENSE)
-```
-
-📁 [Ver capturas del dashboard](./02_conns_homeplus/capturas/)
-
----
-
-## 04 SQL – Modelo Retail Leroy Merlin
-
-**Stack:** SQL Server · T-SQL · Star Schema · Window Functions · CTEs
-
-Modelado dimensional completo de un entorno retail de gran superficie, basado en la estructura operativa de Leroy Merlin. Incluye queries de análisis de negocio reales utilizadas en entornos BI profesionales.
-
-**Esquema implementado:**
-- `fact_ventas` — Transacciones con precio, coste, descuento, cantidad
-- `dim_producto` — Jerarquía categoría / subcategoría / SKU
-- `dim_tienda` — Región, zona, formato de tienda
-- `dim_cliente` — Segmento, canal, frecuencia de compra
-- `dim_tiempo` — Calendario fiscal con semanas, trimestres, festivos
-
-**Queries incluidas:**
-- Ranking de productos por margen bruto con `DENSE_RANK()`
-- Análisis de ventas acumuladas YTD con `SUM() OVER()`
-- Detección de tiendas con caída de ventas vs mismo periodo año anterior
-- Segmentación RFM básica con CTEs
-
-📁 [Ver queries SQL](./04_sql_leroy_merlin/queries.sql)
-
----
-
-## 05 SQL – Base de Datos ERP Corporativo
-
-**Stack:** SQL Server · T-SQL · Modelado relacional · Joins complejos · CTEs
-
-Modelo de base de datos relacional que replica la estructura de un ERP corporativo estándar (módulos de compras, ventas, almacén y RRHH). Diseñado para practicar queries de nivel analista senior.
-
-**Módulos del esquema:**
-- **Compras:** proveedores, órdenes de compra, recepciones, facturación
-- **Ventas:** clientes, pedidos, líneas de pedido, facturación
-- **Almacén:** productos, stock, movimientos, ubicaciones
-- **RRHH:** empleados, departamentos, nóminas, ausencias
-
-**Queries de nivel senior incluidas:**
-- Lead time de proveedores con varianza respecto a SLA contractual
-- Rotación de inventario por categoría con alertas de stock mínimo
-- Análisis de rentabilidad por cliente con coste de servicio
-- Pipeline de ventas con probabilidad de cierre y forecast
-
-📁 [Ver esquema y queries](./05_sql_erp_database/)
-
----
-
-## 🛠️ Stack Tecnológico
-
-| Categoría | Tecnologías |
-|-----------|-------------|
-| Visualización | Power BI Desktop · Power BI Service · Paginated Reports |
-| Lenguajes | DAX · M (Power Query) · SQL · T-SQL · Python (básico) |
-| Modelado | Star Schema · Constellation Schema · Modelado Dimensional |
-| Microsoft Fabric | OneLake · Lakehouse · Direct Lake · Dataflow Gen2 |
-| Buenas prácticas | Row-level Security · Incremental Refresh · Performance Analyzer |
-| Base de datos | SQL Server · Joins · Window Functions · CTEs · Data Profiling |
-| Colaboración | Git · GitHub · Documentación técnica |
-
----
-
-## 📬 Contacto
-
-**Moisés Cambra**  
-Business Intelligence Analyst · Power BI · DAX · SQL · Microsoft Fabric  
-📧 moises.cambra@gmail.com · 📍 Arganda del Rey, Madrid
+**En formación:** Microsoft Fabric (Lakehouse, Direct Lake) · Python para análisis de datos (pandas).

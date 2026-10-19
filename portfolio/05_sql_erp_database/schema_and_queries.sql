@@ -186,6 +186,8 @@ ORDER BY desviacion_media_dias DESC;
 
 -- ── 5.2 Rotación de inventario y alertas de stock mínimo
 -- KPI fundamental en cualquier ERP de gestión de almacén
+-- Nota: sin histórico de stock, la rotación se aproxima con el stock ACTUAL.
+-- Con una tabla de snapshots mensuales se usaría la media de los cierres.
 -- ──────────────────────────────────────────────────────────────────
 
 WITH consumo_anual AS (
@@ -245,7 +247,10 @@ WITH margen_cliente AS (
         SUM(lpv.cantidad * lpv.precio_unitario * (1 - lpv.descuento_linea/100))
             - SUM(lpv.cantidad * lpv.coste_unitario)                            AS margen_bruto,
         COUNT(DISTINCT pv.id_pedido)                                            AS num_pedidos,
-        AVG(pv.importe_neto)                                                    AS ticket_medio
+        -- Ticket medio = ventas / pedidos. AVG(pv.importe_neto) tras el JOIN con las líneas
+        -- ponderaría cada pedido por su número de líneas (efecto fan-out).
+        SUM(lpv.cantidad * lpv.precio_unitario * (1 - lpv.descuento_linea/100))
+            / NULLIF(COUNT(DISTINCT pv.id_pedido), 0)                           AS ticket_medio
     FROM pedidos_venta pv
     JOIN lineas_pedido_venta lpv ON pv.id_pedido = lpv.id_pedido
     WHERE pv.estado = 'Entregado'

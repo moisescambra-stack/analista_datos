@@ -75,11 +75,12 @@ COUNTX(
     fact_incidencias[id_incidencia]
 )
 
+# Sin tercer argumento en DIVIDE: sin incidencias devuelve BLANK (no 0 %),
+# así un contrato sin actividad no aparece como "incumplido"
 Cumplimiento SLA Respuesta % =
 DIVIDE(
     [Cumple SLA Respuesta],
-    [Total Incidencias],
-    0
+    [Total Incidencias]
 )
 
 # Cumplimiento de resolución (solo incidencias cerradas)
@@ -106,8 +107,7 @@ COUNTX(
 Cumplimiento SLA Resolucion % =
 DIVIDE(
     [Cumple SLA Resolucion],
-    [Incidencias Cerradas],
-    0
+    [Incidencias Cerradas]
 )
 
 # SLA Global combinado (respuesta + resolución ponderado)
@@ -121,21 +121,28 @@ SLA Global % =
 Semaforo SLA =
 VAR _sla = [SLA Global %]
 RETURN
+    IF(ISBLANK(_sla), BLANK(),
     IF(_sla >= 0.95, "🟢 Cumple",
     IF(_sla >= 0.90, "🟡 Atención",
-    "🔴 Incumple"))
+    "🔴 Incumple")))
 
 EWI SLA Alerta =
 VAR _sla = [SLA Global %]
 VAR _objetivo = 0.95
 VAR _brecha = _objetivo - _sla
 RETURN
+    IF(ISBLANK(_sla), BLANK(),
     IF(_brecha <= 0, "En objetivo",
     IF(_brecha <= 0.03, "⚠️ Riesgo leve — brecha " & FORMAT(_brecha, "0.0%"),
-    "🚨 Incumplimiento — brecha " & FORMAT(_brecha, "0.0%")))
+    "🚨 Incumplimiento — brecha " & FORMAT(_brecha, "0.0%"))))
 
 Semaforo Incidencias P1 =
-VAR _p1 = CALCULATE([Total Incidencias], fact_incidencias[prioridad] = "P1")
+VAR _p1 =
+    CALCULATE(
+        [Total Incidencias],
+        fact_incidencias[prioridad] = "P1",
+        fact_incidencias[estado] = "Abierta"     -- solo las P1 activas
+    ) + 0
 RETURN
     IF(_p1 = 0, "🟢 Sin P1",
     IF(_p1 <= 3, "🟡 " & _p1 & " P1 activas",

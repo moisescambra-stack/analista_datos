@@ -1,4 +1,4 @@
-# 📊 Auditoría Comercial – Conn's HomePlus (EE.UU.)
+# 📊 Auditoría Comercial – Cadena retail de EE. UU.
 
 **Power BI · DAX · Star Schema · Análisis de Rentabilidad · Segmentación Geoespacial**
 
@@ -6,7 +6,10 @@
 
 ## 📋 Descripción del Proyecto
 
-Solución BI completa para auditoría de rendimiento comercial de una cadena retail americana de consumo masivo. El análisis cubrió **+38.000 transacciones**, **4 macro-regiones** y el periodo **2014–2018**, con objetivo de beneficio de 2,5M€.
+> **Dataset público de práctica** (ventas retail de EE. UU., 2014–2018). Ejercicio de análisis
+> planteado como una auditoría comercial; no es un encargo para ninguna empresa real.
+
+Solución BI para auditar el rendimiento comercial de una cadena retail de consumo masivo. El análisis cubrió **+38.000 transacciones**, **4 macro-regiones** y el periodo **2014–2018**, con un objetivo de beneficio fijado en 2,5 M (supuesto del ejercicio).
 
 **Hallazgo principal:** Déficit del **-8%** respecto al objetivo. Causa raíz identificada: la estrategia de descuentos masivos erosiona el margen sin escalar el beneficio real.
 
@@ -154,4 +157,4 @@ RETURN DIVIDE(_actual - _anterior, _anterior, 0)
 
 ## 📸 Capturas
 
-> Ver carpeta [`/capturas`](./capturas/)
+_Pendiente de añadir._

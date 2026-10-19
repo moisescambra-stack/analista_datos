@@ -2,6 +2,10 @@
 
 **Power BI · DAX · Star Schema · KPIs Operativos · Early Warning Indicators**
 
+> **Datos 100 % sintéticos** (56 incidencias de ejemplo, junio de 2026), incluidos en `/data` para que el dashboard sea reproducible.
+
+![Cumplimiento SLA por contrato](./capturas/cumplimiento_sla_por_contrato.jpg)
+
 ---
 
 ## 📋 Descripción
@@ -142,13 +146,22 @@ Ver todas las medidas en [`/dax/medidas_ola_sla.md`](./dax/medidas_ola_sla.md)
 ## 📁 Archivos
 
 ```
-ola_sla_dashboard/
+ola_sla_project/
 ├── README.md
 ├── data/
 │   ├── fact_incidencias.csv      ← 56 incidencias con tiempos reales
 │   ├── dim_contratos.csv         ← 6 contratos con SLA targets por prioridad
 │   ├── dim_equipos.csv           ← 6 procesos OLA por equipo interno
 │   └── dim_calendario.csv        ← Calendario junio 2026
-└── dax/
-    └── medidas_ola_sla.md        ← 9 bloques DAX documentados (25+ medidas)
+├── dax/
+│   └── medidas_ola_sla.md        ← 9 bloques DAX documentados (25+ medidas)
+└── capturas/                     ← páginas del dashboard
 ```
+
+---
+
+## 📸 Capturas
+
+| Control de niveles (KPIs) | Acuerdos internos (OLA) |
+|---|---|
+| ![](./capturas/control_niveles_kpis.jpg) | ![](./capturas/acuerdos_internos_ola.jpg) |

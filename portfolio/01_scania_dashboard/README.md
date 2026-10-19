@@ -1,4 +1,4 @@
-# 📊 Dashboard Ejecutivo – Scania Ibérica
+# 📊 Dashboard Ejecutivo – Red de concesionarios de vehículos industriales
 
 **Power BI · DAX Avanzado · Constellation Schema · Early Warning Indicators**
 
@@ -6,7 +6,14 @@
 
 ## 📋 Descripción del Proyecto
 
-Cuadro de mando ejecutivo completo para la red de concesionarios Scania Ibérica. Analiza ventas de camiones, operaciones de servicio técnico y cadena de suministro de repuestos en **54 dealers europeos**, con alertas automáticas de rendimiento.
+> **Datos 100 % sintéticos.** Proyecto de portfolio inspirado en la operativa de un fabricante de
+> camiones; no tiene relación con ninguna empresa real ni utiliza datos de ninguna compañía.
+
+Cuadro de mando ejecutivo para una red ficticia de **54 concesionarios europeos** de vehículos
+industriales. Analiza ventas de camiones, operaciones de servicio técnico y cadena de suministro
+de repuestos, con alertas automáticas de rendimiento.
+
+![Executive Overview](./capturas/executive_overview.jpg)
 
 ---
 
@@ -74,78 +81,105 @@ Ratio pedidos urgentes vs planificados por país. Detección de patrones de rotu
 -- ─────────────────────────────────────────
 
 Total Ventas =
-SUMX(Fact_Ventas_Camiones, Fact_Ventas_Camiones[Precio_Venta])
+SUM ( Fact_Ventas_Camiones[Precio_Venta] )
 
-Varianza vs Target =
-VAR _actual = [Total Ventas]
-VAR _target = [Target Ventas Trimestre]
-RETURN DIVIDE(_actual - _target, _target, 0)
-
-Semaforo Rendimiento =
-VAR _var = [Varianza vs Target]
+-- Estado numérico (1 / 0 / -1) para formato condicional con iconos.
+-- Sin objetivo devuelve BLANK: en DAX, BLANK >= 0 es VERDADERO y
+-- sin esta comprobación un mes sin objetivo aparecería en verde.
+Estado Ventas =
+VAR _target   = [Target Ventas Trimestre]
+VAR _varianza = DIVIDE ( [Total Ventas] - _target, _target )
 RETURN
-    IF(_var >= 0, "🟢 En objetivo",
-    IF(_var >= -0.05, "🟡 Atención",
-    "🔴 Por debajo"))
+    SWITCH (
+        TRUE (),
+        ISBLANK ( _target ),  BLANK (),
+        _varianza >= 0,       1,     -- en objetivo
+        _varianza >= -0.05,   0,     -- atención
+        -1                           -- por debajo
+    )
 
 -- ─────────────────────────────────────────
 -- TIME INTELLIGENCE
 -- ─────────────────────────────────────────
 
 Ventas YoY % =
-VAR _actual = [Total Ventas]
-VAR _anterior = CALCULATE([Total Ventas], SAMEPERIODLASTYEAR(Dim_Calendario[Fecha]))
-RETURN DIVIDE(_actual - _anterior, _anterior, 0)
+VAR _actual   = [Total Ventas]
+VAR _anterior = CALCULATE ( [Total Ventas], SAMEPERIODLASTYEAR ( Dim_Calendario[Fecha] ) )
+RETURN DIVIDE ( _actual - _anterior, _anterior )
 
+-- Ventana anclada a la última fecha con ventas: evita ventanas vacías
+-- cuando el calendario se extiende más allá de los datos.
 Rolling 3M Ventas =
-CALCULATE(
-    [Total Ventas],
-    DATESINPERIOD(Dim_Calendario[Fecha], LASTDATE(Dim_Calendario[Fecha]), -3, MONTH)
-)
+VAR _ultimaFechaConDatos =
+    CALCULATE ( MAX ( Fact_Ventas_Camiones[Fecha] ), ALL ( Dim_Calendario ) )
+VAR _fechaRef =
+    MIN ( MAX ( Dim_Calendario[Fecha] ), _ultimaFechaConDatos )
+RETURN
+    CALCULATE (
+        [Total Ventas],
+        DATESINPERIOD ( Dim_Calendario[Fecha], _fechaRef, -3, MONTH )
+    )
 
 -- ─────────────────────────────────────────
 -- SERVICE OPERATIONS
 -- ─────────────────────────────────────────
 
 First Time Fix Rate =
-VAR _resueltos_primera =
-    CALCULATE(
-        COUNTROWS(Fact_Servicio_Operaciones),
-        Fact_Servicio_Operaciones[Intentos_Reparacion] = 1
-    )
-VAR _total = COUNTROWS(Fact_Servicio_Operaciones)
-RETURN DIVIDE(_resueltos_primera, _total, 0)
+DIVIDE (
+    CALCULATE ( COUNTROWS ( Fact_Servicio_Operaciones ),
+                Fact_Servicio_Operaciones[Intentos_Reparacion] = 1 ),
+    COUNTROWS ( Fact_Servicio_Operaciones )
+)
 
-EWI FTFR Alerta =
-IF([First Time Fix Rate] < 0.85, "⚠️ FTFR bajo umbral", "✅ OK")
+EWI FTFR =
+VAR _ftfr = [First Time Fix Rate]
+RETURN IF ( NOT ISBLANK ( _ftfr ), IF ( _ftfr < 0.85, -1, 1 ) )
 
 -- ─────────────────────────────────────────
--- RANKING
+-- RANKING (respeta los filtros del usuario y no puntúa el total)
 -- ─────────────────────────────────────────
 
 Ranking Dealer Ventas =
-RANKX(ALL(Dim_Dealer[Nombre_Dealer]), [Total Ventas], , DESC, DENSE)
+IF (
+    ISINSCOPE ( Dim_Dealer[Nombre_Dealer] ) && NOT ISBLANK ( [Total Ventas] ),
+    RANKX ( ALLSELECTED ( Dim_Dealer[Nombre_Dealer] ), [Total Ventas], , DESC, DENSE )
+)
 
 -- ─────────────────────────────────────────
 -- SUPPLY CHAIN REPUESTOS
 -- ─────────────────────────────────────────
 
 % Pedidos Urgentes =
-VAR _urgentes = CALCULATE(COUNTROWS(Fact_Repuestos), Fact_Repuestos[Tipo_Pedido] = "Urgente")
-VAR _total = COUNTROWS(Fact_Repuestos)
-RETURN DIVIDE(_urgentes, _total, 0)
+DIVIDE (
+    CALCULATE ( COUNTROWS ( Fact_Repuestos ), Fact_Repuestos[Tipo_Pedido] = "Urgente" ),
+    COUNTROWS ( Fact_Repuestos )
+)
 
 EWI Riesgo Repuestos =
-IF([% Pedidos Urgentes] > 0.30, "🔴 Riesgo SC elevado",
-IF([% Pedidos Urgentes] > 0.15, "🟡 Monitorizar",
-"🟢 Normal"))
+VAR _urg = [% Pedidos Urgentes]
+RETURN
+    SWITCH (
+        TRUE (),
+        ISBLANK ( _urg ), BLANK (),
+        _urg > 0.30,      -1,   -- riesgo elevado
+        _urg > 0.15,      0,    -- monitorizar
+        1                       -- normal
+    )
 ```
+
+> **Lógica separada de la presentación:** las medidas de estado devuelven 1 / 0 / -1 y el color
+> o icono se asigna en Power BI con *Formato condicional → Iconos → Basado en reglas*. La misma
+> medida sirve para tablas, tarjetas y alertas.
 
 ---
 
 ## 📸 Capturas
 
-> Ver carpeta [`/capturas`](./capturas/)
+| Executive Overview | Truck Sales |
+|---|---|
+| ![](./capturas/executive_overview.jpg) | ![](./capturas/truck_sales.jpg) |
+| **Service Operations** | **Spare Parts** |
+| ![](./capturas/service_operations.jpg) | ![](./capturas/spare_parts.jpg) |
 
 ---
 

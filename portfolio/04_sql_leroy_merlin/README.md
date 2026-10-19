@@ -1,4 +1,4 @@
-# 🏪 SQL – Modelo Retail Leroy Merlin
+# 🏪 SQL – Modelo retail de gran superficie (bricolaje)
 
 **SQL Server · T-SQL · Star Schema · Window Functions · CTEs · Segmentación RFM**
 
@@ -6,7 +6,9 @@
 
 ## 📋 Descripción
 
-Modelado dimensional completo de un entorno retail de gran superficie basado en la estructura operativa de Leroy Merlin. Diseñado para demostrar queries de análisis de negocio reales utilizadas en entornos BI profesionales.
+> **Datos y estructura sintéticos**, sin relación con ninguna empresa real.
+
+Modelado dimensional de un entorno retail de gran superficie de bricolaje. Diseñado para demostrar queries de análisis de negocio reales utilizadas en entornos BI profesionales.
 
 ---
 
