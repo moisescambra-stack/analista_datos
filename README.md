@@ -32,31 +32,44 @@ Cuadro de mando ejecutivo completo para la red de concesionarios Scania Ibérica
 - **Service Operations** — First Time Fix Rate, tiempos de intervención, eficiencia técnica
 - **Spare Parts** — Gestión de repuestos, pedidos urgentes, riesgo en SC por país
 
-**Técnicas DAX aplicadas:**
-```dax
--- Varianza vs Target con semáforo de color
-VAR _actual = [Total Ventas]
-VAR _target = [Target Ventas]
-VAR _varianza = DIVIDE(_actual - _target, _target)
+-- ─────────────────────────────────────────
+-- Semáforo de rendimiento vs objetivo
+-- ─────────────────────────────────────────
+Semaforo Ventas =
+VAR _actual   = [Total Ventas]
+VAR _target   = [Target Ventas]
+VAR _varianza = DIVIDE ( _actual - _target, _target )
 RETURN
-IF(_varianza >= 0, "🟢", IF(_varianza >= -0.05, "🟡", "🔴"))
+    SWITCH (
+        TRUE (),
+        ISBLANK ( _target ), BLANK (),          -- sin objetivo: no se evalúa
+        _varianza >= 0,      "🟢",
+        _varianza >= -0.05,  "🟡",
+        "🔴"
+    )
 
--- Rolling 3 meses
-Rolling3M Ventas =
-CALCULATE(
-    [Total Ventas],
-    DATESINPERIOD(Calendario[Fecha], LASTDATE(Calendario[Fecha]), -3, MONTH)
-)
+-- ─────────────────────────────────────────
+-- Ventas acumuladas de los últimos 3 meses
+-- ─────────────────────────────────────────
+Rolling 3M Ventas =
+VAR _ultimaFechaConDatos =
+    CALCULATE ( MAX ( Fact_Ventas_Camiones[Fecha] ), ALL ( Dim_Calendario ) )
+VAR _fechaRef =
+    MIN ( MAX ( Dim_Calendario[Fecha] ), _ultimaFechaConDatos )
+RETURN
+    CALCULATE (
+        [Total Ventas],
+        DATESINPERIOD ( Dim_Calendario[Fecha], _fechaRef, -3, MONTH )
+    )
 
--- RANKX por dealer
+-- ─────────────────────────────────────────
+-- Ranking de dealers (respeta los filtros del usuario)
+-- ─────────────────────────────────────────
 Ranking Dealer =
-RANKX(ALL(Dim_Dealer[Dealer]), [Total Ventas], , DESC, DENSE)
-```
-
-**Early Warning Indicators implementados:**
-- Alerta si First Time Fix Rate < 85%
-- Alerta si pedidos urgentes de repuestos > umbral por país
-- Semáforo de rendimiento vs target trimestral
+IF (
+    ISINSCOPE ( Dim_Dealer[Nombre_Dealer] ) && NOT ISBLANK ( [Total Ventas] ),
+    RANKX ( ALLSELECTED ( Dim_Dealer[Nombre_Dealer] ), [Total Ventas], , DESC, DENSE )
+)
 
 📁 [Ver capturas del dashboard](./01_scania_dashboard/capturas/)
 
